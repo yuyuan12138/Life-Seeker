@@ -13,7 +13,7 @@ class Train:
                  loss_fn,
                  optimizer,
                  config,
-                 save_path
+                 save_path,
                  ) -> None:
 
         self.train_dataloader = train_dataloader
