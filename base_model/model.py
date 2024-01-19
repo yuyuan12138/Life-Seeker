@@ -31,7 +31,6 @@ class Net(nn.Module):
     def forward(self, x):
         x = x.transpose(1, 2)
         y = torch.flip(x, dims=[0])
-        # print(x.shape)
 
         x = self.conv1D(x)
         # print(x.shape)
