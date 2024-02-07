@@ -19,5 +19,5 @@ def generate_morgan_fingerprint(molecule):
 molecule_smiles = "OC1C(N2C=3C(N=C2)=C(N)N=CN3)OC(C[S+](CCC(C([O-])=O)N)C)C1O"
 vector_representation = generate_morgan_fingerprint(molecule_smiles)
 
-print("分子向量表示:", vector_representation.shape)
+print("分子向量表示:", vector_representation)
 

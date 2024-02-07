@@ -1,32 +1,48 @@
 import torch
 import torch.nn as nn
 from Conv1d_Location_Specific import Conv1d_location_specific as Spec_Conv1d
+from Transformer_different_attention import Transformer_Different_Attention_Encoder as Spec_transfomerEncoder
 
 
 class Net(nn.Module):
-    def __init__(self, in_channels, out_channels, use_spectic_conv1d=False):
+    def __init__(self, in_channels, out_channels, use_spectic_conv1d=False, use_spectic_transformer=False):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
+
         if use_spectic_conv1d:
             self.conv1D = Spec_Conv1d(in_channels=4, out_channels=64, kernel_size=3, padding=1, stride=1)
         else:
             self.conv1D = nn.Conv1d(in_channels, 64, kernel_size=3, padding=1, stride=1)
+
         self.bn = nn.BatchNorm1d(64)
         self.relu = nn.ReLU()
         self.conv2D = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=(2, 3), padding=(0, 1))
         self.bn_2 = nn.BatchNorm1d(64)
+
         if use_spectic_conv1d:
             self.conv1D_2 = Spec_Conv1d(in_channels=64, out_channels=64, kernel_size=1, stride=1, padding=0)
         else:
             self.conv1D_2 = nn.Conv1d(in_channels=64, out_channels=64, kernel_size=1, stride=1, padding=0)
         # self.conv1D_2 = nn.Conv1d(in_channels=64, out_channels=64, kernel_size=1, padding=0, stride=1)
+
         self.bn_3 = nn.BatchNorm1d(64)
-        self.transformer = nn.Sequential(
-            nn.TransformerEncoderLayer(d_model=64, nhead=2, dim_feedforward=8, batch_first=True),
-            # nn.TransformerEncoderLayer(d_model=64, nhead=8, dim_feedforward=8, batch_first=True),
-        )
+
+        if use_spectic_transformer:
+            self.transformer = Spec_transfomerEncoder(methyl_in_channels=2048,
+                                                      w_in_channels=64,
+                                                      norm_in_channels=64,
+                                                      trans_out_channels=2048,
+                                                      v_out_channels=64,
+                                                      N=1,
+                                                      dim_feedforward=8)
+        else:
+            self.transformer = nn.Sequential(
+                nn.TransformerEncoderLayer(d_model=64, nhead=2, dim_feedforward=8, batch_first=True),
+                # nn.TransformerEncoderLayer(d_model=64, nhead=8, dim_feedforward=8, batch_first=True),
+            )
         # self.Bide = nn.LSTM(input_size=64, dropout=0.5, num_layers=8, hidden_size=64, batch_first=True)
+
         self.dropout = nn.Dropout(0.5)
         self.flat = nn.Flatten()
         self.fc = nn.Sequential(
@@ -35,13 +51,16 @@ class Net(nn.Module):
             nn.Dropout(0.5),
             nn.Linear(64, self.out_channels),
         )
-        self.use_spectic_conv1d = use_spectic_conv1d
 
-    def forward(self, x):
+        self.use_spectic_conv1d = use_spectic_conv1d
+        self.use_spectic_transformerEncoder = use_spectic_transformer
+
+    def forward(self, x, query):
         x = x.transpose(1, 2)
         # print(x.size())
         y = torch.flip(x, dims=[0])
         # print(y.shape)
+
         if self.use_spectic_conv1d:
             x = self.conv1D(x, non_important_site=10, important_site=31)
         else:
@@ -52,6 +71,7 @@ class Net(nn.Module):
         else:
             y = self.conv1D(y)
         # print(y.shape)
+
         x = self.bn(x)
         y = self.bn(y)
         x = self.relu(x)
@@ -82,7 +102,13 @@ class Net(nn.Module):
         x = self.relu(x)
         x = x.transpose(1, 2)
         # print(x.shape)
-        x = self.transformer(x)
+
+        if self.use_spectic_transformerEncoder:
+            x = self.transformer(x, query)
+        else:
+            x = self.transformer(x)
+
+
         # print(x.shape)
         # print(x.shape)
 
@@ -96,9 +122,9 @@ class Net(nn.Module):
         return x
 
 
-"""测试"""
-x = torch.randn(64, 41, 4)
-print("输入形状：", x.size())
-model = Net(4, 2, use_spectic_conv1d=True)
-x = model(x)
-print("输出形状：", x.size())
+# """测试"""
+# x = torch.randn(64, 41, 4)
+# print("输入形状：", x.size())
+# model = Net(4, 2, use_spectic_conv1d=True)
+# x = model(x)
+# print("输出形状：", x.size())

@@ -1,24 +1,25 @@
 import copy
 import math
 
+import numpy as np
 import torch
 from torch import nn
 import torch.nn.functional as F
+from vector_embedding import vector_representation
 
 
 class S_DNA_different_Attention(nn.Module):
-    def __init__(self, hidden_size):
+    def __init__(self, methyl_in_channels, w_in_channels, out_channels, v_out_channels):
         super(S_DNA_different_Attention, self).__init__()
 
         # 定义参数
-        self.hidden_size = hidden_size
-
+        self.hidden_size = out_channels
         # 定义权重
-        self.w_q = nn.Linear(hidden_size, hidden_size)
-        self.w_k_1 = nn.Linear(hidden_size, hidden_size)
-        self.w_k_2 = nn.Linear(hidden_size, hidden_size)
-        self.w_k_3 = nn.Linear(hidden_size, hidden_size)
-        self.w_v = nn.Linear(hidden_size, hidden_size)
+        self.w_q = nn.Linear(methyl_in_channels, out_channels)
+        self.w_k_1 = nn.Linear(w_in_channels, out_channels)
+        self.w_k_2 = nn.Linear(w_in_channels, out_channels)
+        self.w_k_3 = nn.Linear(w_in_channels, out_channels)
+        self.w_v = nn.Linear(w_in_channels, v_out_channels)
 
         # 定义激活函数
         self.softmax = nn.Softmax(dim=1)
@@ -34,12 +35,14 @@ class S_DNA_different_Attention(nn.Module):
         # print(attention_sorces_1.size())
         attention_sorces_2 = torch.matmul(Q, K_2.transpose(-1, -2))
         attention_sorces_3 = torch.matmul(Q, K_3.transpose(-1, -2))
-
+        # print(attention_sorces_3.shape)
         attention_sorces = torch.cat((0.2*attention_sorces_1, 0.6*attention_sorces_2, 0.2*attention_sorces_3), dim=2) / math.sqrt(
             self.hidden_size)
         attention_probs = nn.Softmax(dim=-1)(attention_sorces)
+        # print(attention_probs.shape)
 
-        out = torch.matmul(attention_probs, V)
+        out = attention_probs.reshape(encoder_outputs.shape[0], -1, 1) * V
+        # print(out.shape)
 
         return out
 
@@ -69,24 +72,28 @@ class Norm(nn.Module):
         self.eps = eps
 
     def forward(self, x):
+        # print(self.alpha.shape)
+        # print((x - x.mean(dim=-1, keepdim=True)).shape)
         norm = self.alpha * (x - x.mean(dim=-1, keepdim=True)) \
                / (x.std(dim=-1, keepdim=True) + self.eps) + self.bias
         return norm
 
 
 class Transformer_Different_Attention_EncoderLayer(nn.Module):
-    def __init__(self, hidden_size, dropout=0.1, threshold_value=False):
+    def __init__(self, methyl_in_channels, w_in_channels, norm_in_channels, out_channels, v_out_channels, dim_feedforward, dropout=0.1, threshold_value=False):
         super().__init__()
-        self.norm_1 = Norm(hidden_size)
-        self.norm_2 = Norm(hidden_size)
-        self.attn = S_DNA_different_Attention(hidden_size)
-        self.ff = FeedForward(hidden_size)
+        self.norm_1 = Norm(norm_in_channels)
+        self.norm_2 = Norm(norm_in_channels)
+        self.attn = S_DNA_different_Attention(methyl_in_channels, w_in_channels, out_channels, v_out_channels)
+        self.ff = FeedForward(norm_in_channels, dim_feedforward)
         self.dropout_1 = nn.Dropout(dropout)
         self.dropout_2 = nn.Dropout(dropout)
         self.threshold_value = threshold_value
 
     def forward(self, x, query):
         x2 = self.norm_1(x)
+        # print(x2.shape)
+        # print(query.shape)
         x = x + self.dropout_1(self.attn(x2, query))
         x2 = self.norm_2(x)
 
@@ -107,12 +114,12 @@ def get_clones(module, N):
 
 
 class Transformer_Different_Attention_Encoder(nn.Module):
-    def __init__(self, hidden_size, N, threshold_value=False):
+    def __init__(self, methyl_in_channels, w_in_channels, norm_in_channels, trans_out_channels, v_out_channels, N, dim_feedforward, threshold_value=False):
         super().__init__()
         self.N = N
         self.layers = get_clones(
-            Transformer_Different_Attention_EncoderLayer(hidden_size, threshold_value=threshold_value), N)
-        self.norm = Norm(hidden_size)
+            Transformer_Different_Attention_EncoderLayer(methyl_in_channels, w_in_channels, norm_in_channels, trans_out_channels, v_out_channels, dim_feedforward, threshold_value=threshold_value), N)
+        self.norm = Norm(norm_in_channels)
 
     def forward(self, x, query):
         for i in range(self.N):
@@ -120,10 +127,28 @@ class Transformer_Different_Attention_Encoder(nn.Module):
         return self.norm(x)
 
 
-"""----------测试--------------"""
-x1 = torch.randn((32, 41, 32))
-x2 = torch.randn((32, 41, 32))
-Transformer_Different_Attention_Encoder = Transformer_Different_Attention_Encoder(hidden_size=32, N=6)
-output = Transformer_Different_Attention_Encoder(x1, x2)
-print(output.size())
+# """----------测试--------------"""
+# x1 = torch.randn((32, 41, 4))
+# x2 = torch.randn((1, 2048))
+# Transformer_Different_Attention_Encoder = Transformer_Different_Attention_Encoder(methyl_in_channels=2048,
+#                                                                                   w_in_channels=4,
+#                                                                                   norm_in_channels=4,
+#                                                                                   trans_out_channels=2048,
+#                                                                                   v_out_channels=4,
+#                                                                                   N=6,
+#                                                                                   dim_feedforward=8)
+# output = Transformer_Different_Attention_Encoder(x1, x2)
+# print(output.size())
 # print(output)
+
+
+# """-----------测试甲基供体------------"""
+# x = torch.randn(64, 41, 4)
+# S_Attention = S_DNA_different_Attention(methyl_in_channels=2048, w_in_channels=4, out_channels=2048, v_out_channels=4, batch_size=64)
+# # print(vector_representation.dtype)
+# vector_representation_double = np.array(vector_representation, dtype=np.float32)
+# # print(vector_representation_double.dtype)
+# vector_representation_double = torch.tensor(vector_representation_double).view(1, -1)
+#
+# output = S_Attention(x, vector_representation_double)
+# print(output.shape)
