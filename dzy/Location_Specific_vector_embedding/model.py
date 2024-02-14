@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 from Conv1d_Location_Specific import Conv1d_location_specific as Spec_Conv1d
-from Transformer_different_attention import Transformer_Different_Attention_Encoder as Spec_transfomerEncoder
-
+# from Transformer_different_attention import Transformer_Different_Attention_Encoder as Spec_transfomerEncoder
+from Transformer_spec_self_attention import Transformer_Different_Attention_Encoder as Spec_transfomerEncoder
 
 class Net(nn.Module):
     def __init__(self, in_channels, out_channels, use_spectic_conv1d=False, use_spectic_transformer=False):
@@ -29,13 +29,11 @@ class Net(nn.Module):
         self.bn_3 = nn.BatchNorm1d(64)
 
         if use_spectic_transformer:
-            self.transformer = Spec_transfomerEncoder(methyl_in_channels=2048,
-                                                      w_in_channels=64,
+            self.transformer = Spec_transfomerEncoder(d_model=64,
                                                       norm_in_channels=64,
-                                                      trans_out_channels=2048,
-                                                      v_out_channels=64,
                                                       N=1,
-                                                      dim_feedforward=8)
+                                                      dim_feedforward=8,
+                                                      nhead=2)
         else:
             self.transformer = nn.Sequential(
                 nn.TransformerEncoderLayer(d_model=64, nhead=2, dim_feedforward=8, batch_first=True),
@@ -55,7 +53,7 @@ class Net(nn.Module):
         self.use_spectic_conv1d = use_spectic_conv1d
         self.use_spectic_transformerEncoder = use_spectic_transformer
 
-    def forward(self, x, query):
+    def forward(self, x):
         x = x.transpose(1, 2)
         # print(x.size())
         y = torch.flip(x, dims=[0])
@@ -104,7 +102,7 @@ class Net(nn.Module):
         # print(x.shape)
 
         if self.use_spectic_transformerEncoder:
-            x = self.transformer(x, query)
+            x = self.transformer(x)
         else:
             x = self.transformer(x)
 

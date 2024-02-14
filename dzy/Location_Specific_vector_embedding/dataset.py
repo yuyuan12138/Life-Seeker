@@ -20,15 +20,16 @@ class MyDataset(Dataset):
 
 # df_train = pd.read_csv("data/5hmC/5hmC_H.sapiens/train.tsv", sep="\t")
 # df_test = pd.read_csv("data/5hmC/5hmC_H.sapiens/test.tsv", sep="\t")
-df_train = pd.read_csv("data/4mC/4mC_C.equisetifolia/train.tsv", sep="\t")
-df_test = pd.read_csv("data/4mC/4mC_C.equisetifolia/test.tsv", sep="\t")
+# df_train = pd.read_csv("data/4mC/4mC_C.equisetifolia/train.tsv", sep="\t")
+# df_test = pd.read_csv("data/4mC/4mC_C.equisetifolia/test.tsv", sep="\t")
 # df_train = pd.read_csv("data/4mC/4mC_F.vesca/train.tsv", sep="\t")
 # df_test = pd.read_csv("data/4mC/4mC_F.vesca/test.tsv", sep="\t")
 # df_train = pd.read_csv("data/4mC/4mC_S.cerevisiae/train.tsv", sep="\t")
 # df_test = pd.read_csv("data/4mC/4mC_S.cerevisiae/test.tsv", sep="\t")
 # df_train = pd.read_csv("data/4mC/4mC_Tolypocladium/train.tsv", sep="\t")
 # df_test = pd.read_csv("data/4mC/4mC_Tolypocladium/test.tsv", sep="\t")
-
+df_train = pd.read_csv("data/6mA/6mA_C.elegans/train.tsv", sep="\t")
+df_test = pd.read_csv("data/6mA/6mA_C.elegans/test.tsv", sep="\t")
 
 # print(df_train)
 one_hot_list_train = []
@@ -65,8 +66,6 @@ label_train = df_train["label"]
 label_test = df_test["label"]
 # print(one_hot_list_train) #打印出来是41x4的矩阵
 # print(one_hot_list_train)
-
-
 
 
 
