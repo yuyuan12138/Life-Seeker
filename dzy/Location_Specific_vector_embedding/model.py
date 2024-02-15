@@ -2,7 +2,9 @@ import torch
 import torch.nn as nn
 from Conv1d_Location_Specific import Conv1d_location_specific as Spec_Conv1d
 # from Transformer_different_attention import Transformer_Different_Attention_Encoder as Spec_transfomerEncoder
-from Transformer_spec_self_attention import Transformer_Different_Attention_Encoder as Spec_transfomerEncoder
+# from Transformer_spec_self_attention import Transformer_Different_Attention_Encoder as Spec_transfomerEncoder
+from Transformer_weight import Transformer_Different_Attention_Encoder as Spec_transfomerEncoder
+
 
 class Net(nn.Module):
     def __init__(self, in_channels, out_channels, use_spectic_conv1d=False, use_spectic_transformer=False):
@@ -33,7 +35,8 @@ class Net(nn.Module):
                                                       norm_in_channels=64,
                                                       N=1,
                                                       dim_feedforward=8,
-                                                      nhead=2)
+                                                      nhead=2,
+                                                      weight_normal=True)
         else:
             self.transformer = nn.Sequential(
                 nn.TransformerEncoderLayer(d_model=64, nhead=2, dim_feedforward=8, batch_first=True),
@@ -106,7 +109,6 @@ class Net(nn.Module):
         else:
             x = self.transformer(x)
 
-
         # print(x.shape)
         # print(x.shape)
 
@@ -118,7 +120,6 @@ class Net(nn.Module):
 
         x = self.fc(x)
         return x
-
 
 # """测试"""
 # x = torch.randn(64, 41, 4)

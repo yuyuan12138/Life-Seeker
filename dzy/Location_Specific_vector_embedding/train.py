@@ -59,10 +59,10 @@ net = Net(in_channels=4, out_channels=2, use_spectic_conv1d=True, use_spectic_tr
 #     print("模型参数文件加载完成")
 
 
-epoches = 100
+epoches = 200
 loss_seq = torch.nn.CrossEntropyLoss()
 # loss = loss.cuda()
-learning_rate = 5e-4
+learning_rate = 1e-4
 optimizer = torch.optim.AdamW(net.parameters(), lr=learning_rate, weight_decay=1e-4)  # L2正则化:weight_decay=0.01
 train_loss_epoches_list = []
 val_loss_epoches_list = []
