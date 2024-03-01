@@ -13,6 +13,7 @@ from dataset import *
 import torch
 from torch.utils.data import DataLoader, Dataset
 from sklearn.model_selection import KFold
+from Transformer_artificial_weight import different_Self_Attention
 from torch.utils.data.dataset import random_split
 from vector_embedding import vector_representation
 
@@ -51,13 +52,15 @@ train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
 
-net = Net(in_channels=4, out_channels=2, use_spectic_conv1d=True, use_spectic_transformer=True)
+net = Net(in_channels=4, out_channels=2, use_spectic_conv1d=False, use_spectic_transformer=True)
 
 # if os.path.exists(weight_path):
 #     print("开始加载模型参数文件")
 #     net.load_state_dict(torch.load(weight_path))
 #     print("模型参数文件加载完成")
 
+diff_self = different_Self_Attention(d_model=64, nhead=2)
+print(f"当前权重组合为{diff_self.weight}")
 
 epoches = 200
 loss_seq = torch.nn.CrossEntropyLoss()
@@ -164,7 +167,7 @@ print("最后的特征矩阵为({}, {}, {})".format(batch_size, seq_len, hidden_
 print("学习率为{}".format(learning_rate))
 print("训练轮数为{}".format(epoches))
 print("最大acc为{}".format(max(acc_test_list)))
-
+print("最大acc对应的训练轮数：", acc_test_list.index(max(acc_test_list))+1)
 # torch.save(net.state_dict(), weight_path)
 # print("模型参数文件保存完成")
 

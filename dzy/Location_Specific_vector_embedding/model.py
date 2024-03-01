@@ -1,9 +1,12 @@
 import torch
 import torch.nn as nn
 from Conv1d_Location_Specific import Conv1d_location_specific as Spec_Conv1d
+# from Conv1d_weight import Conv1d_location_specific as Spec_Conv1d
+
 # from Transformer_different_attention import Transformer_Different_Attention_Encoder as Spec_transfomerEncoder
 # from Transformer_spec_self_attention import Transformer_Different_Attention_Encoder as Spec_transfomerEncoder
-from Transformer_weight import Transformer_Different_Attention_Encoder as Spec_transfomerEncoder
+# from Transformer_weight import Transformer_Different_Attention_Encoder as Spec_transfomerEncoder
+from Transformer_artificial_weight import Transformer_Different_Attention_Encoder as Spec_transfomerEncoder
 
 
 class Net(nn.Module):
@@ -14,6 +17,8 @@ class Net(nn.Module):
 
         if use_spectic_conv1d:
             self.conv1D = Spec_Conv1d(in_channels=4, out_channels=64, kernel_size=3, padding=1, stride=1)
+            # self.conv1D = Spec_Conv1d(in_channels=4, out_channels=64, kernel_size=3, padding=1, stride=1,
+            #                           weight_normal=True)
         else:
             self.conv1D = nn.Conv1d(in_channels, 64, kernel_size=3, padding=1, stride=1)
 
@@ -24,6 +29,8 @@ class Net(nn.Module):
 
         if use_spectic_conv1d:
             self.conv1D_2 = Spec_Conv1d(in_channels=64, out_channels=64, kernel_size=1, stride=1, padding=0)
+            # self.conv1D_2 = Spec_Conv1d(in_channels=64, out_channels=64, kernel_size=1, stride=1, padding=0,
+            #                             weight_normal=True)
         else:
             self.conv1D_2 = nn.Conv1d(in_channels=64, out_channels=64, kernel_size=1, stride=1, padding=0)
         # self.conv1D_2 = nn.Conv1d(in_channels=64, out_channels=64, kernel_size=1, padding=0, stride=1)
@@ -35,8 +42,7 @@ class Net(nn.Module):
                                                       norm_in_channels=64,
                                                       N=1,
                                                       dim_feedforward=8,
-                                                      nhead=2,
-                                                      weight_normal=True)
+                                                      nhead=2)
         else:
             self.transformer = nn.Sequential(
                 nn.TransformerEncoderLayer(d_model=64, nhead=2, dim_feedforward=8, batch_first=True),

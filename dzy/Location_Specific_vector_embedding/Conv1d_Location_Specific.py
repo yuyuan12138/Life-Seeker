@@ -8,6 +8,7 @@ class Conv1d_location_specific(nn.Module):
         if weight is None:
             # weight = nn.Parameter(torch.tensor([0.2, 0.6, 0.2]))  # 令其为可学习参数
             weight = torch.tensor([0.2, 0.6, 0.2])
+
             # print(weight)
         self.kernel_size = kernel_size
         self.stride = stride

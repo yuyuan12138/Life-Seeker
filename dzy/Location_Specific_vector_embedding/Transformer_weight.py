@@ -10,13 +10,16 @@ from scipy import stats
 
 
 class different_Self_Attention(nn.Module):
-    def __init__(self, d_model, nhead, weight_normal=False):
+    def __init__(self, d_model, nhead, weight=False, weight_normal=False, weight_cauchy=False, weight_logistic=False):
         super(different_Self_Attention, self).__init__()
 
         # 定义参数
         self.weight = torch.tensor([0.2, 0.6, 0.2])
         self.nhead = nhead
         self.weight_normal = weight_normal
+        self.weight_Cauchy = weight_cauchy
+        self.weight_Logistic = weight_logistic
+        self.weight = weight
         # 定义权重
         self.w_q = nn.Linear(d_model, d_model)
         self.w_k = nn.Linear(d_model, d_model)
@@ -44,7 +47,7 @@ class different_Self_Attention(nn.Module):
             #     # print(w)
             #     q = w * Q[:, index, :]
             #     k = w * K[:, index, :]
-            #     v = w * K[:, index, :]
+            #     v = w * V[:, index, :]
             #     Q_weight_list.append(q)
             #     K_weight_list.append(k)
             #     V_weight_list.append(v)
@@ -53,7 +56,9 @@ class different_Self_Attention(nn.Module):
             # K = torch.concat(K_weight_list, dim=1)
             # V = torch.concat(V_weight_list, dim=1)
             pos = torch.arange(1, 42, dtype=torch.float, device=Q.device)  # 生成位置信息
-            w = torch.tensor(stats.norm.pdf(pos.cpu().numpy(), 21, 5), dtype=Q.dtype, device=Q.device)  # 计算权重时指定与Q相同的数据类型
+            # w = torch.tensor(stats.norm.pdf(pos.cpu().numpy(), 21, 5), dtype=Q.dtype, device=Q.device)  #
+            # 计算权重时指定与Q相同的数据类型
+            w = torch.tensor(math.e ** (-((pos.cpu().numpy() - 21) ** 2) / (2 * 10)), dtype=Q.dtype, device=Q.device)
             w = w.reshape(1, -1, 1)  # 调整形状以便广播
             # print(w.shape)
             Q = w * Q  # 权重乘以Q
@@ -61,7 +66,25 @@ class different_Self_Attention(nn.Module):
             K = w * K  # 权重乘以K
             V = w * V  # 权重乘以V
 
-        else:
+        elif self.weight_Cauchy:
+            pos = torch.arange(1, 42, dtype=torch.float, device=Q.device)
+            w = torch.tensor((1/math.pi) ** ((1/math.pi) / ((pos.cpu().numpy() - 21) ** 2 + (1/math.pi)**2)),
+                             dtype=Q.dtype, device=Q.device)
+            w = w.reshape(1, -1, 1)  # 调整形状以便广播
+            Q = w * Q  # 权重乘以Q
+            K = w * K  # 权重乘以K
+            V = w * V  # 权重乘以V
+
+        elif self.weight_Logistic:
+            pos = torch.arange(1, 42, dtype=torch.float, device=Q.device)
+            w = torch.tensor(4*(math.e**(-pos.cpu().numpy()+21)) / (1+(math.e**(-pos.cpu().numpy()+21))**2),
+                             dtype=Q.dtype, device=Q.device)
+            w = w.reshape(1, -1, 1)  # 调整形状以便广播
+            Q = w * Q  # 权重乘以Q
+            K = w * K  # 权重乘以K
+            V = w * V  # 权重乘以V
+
+        elif self.weight:
             Q_b_1 = Q[:, 0:10, :]
             Q_a = Q[:, 10:31, :]
             Q_b_2 = Q[:, 31:41, :]
@@ -80,7 +103,9 @@ class different_Self_Attention(nn.Module):
             V = torch.concat([self.weight[0] * V_b_1,
                               self.weight[1] * V_a,
                               self.weight[2] * V_b_2], dim=1)
-            print(Q.shape)
+            # print(Q.shape)
+        else:
+            pass
 
         Q = Q.reshape(batch, num, num_heads, d_head_model).transpose(1, 2)
         K = K.reshape(batch, num, num_heads, d_head_model).transpose(1, 2)
@@ -132,17 +157,19 @@ class Norm(nn.Module):
 
 class Transformer_Different_Attention_EncoderLayer(nn.Module):
     def __init__(self, d_model, norm_in_channels, dim_feedforward, nhead, dropout=0.1, threshold_value=False,
-                 weight_normal=False):
+                 weight=False, weight_normal=False, weight_cauchy=False, weight_logistic=False):
         super().__init__()
         self.norm_1 = Norm(norm_in_channels)
         self.norm_2 = Norm(norm_in_channels)
-        self.attn = different_Self_Attention(d_model, nhead, weight_normal=weight_normal)
+        self.attn = different_Self_Attention(d_model, nhead,
+                                             weight=weight, weight_normal=weight_normal,
+                                             weight_cauchy=weight_cauchy, weight_logistic=weight_logistic)
         self.ff = FeedForward(norm_in_channels, dim_feedforward)
         self.dropout_1 = nn.Dropout(dropout)
         self.dropout_2 = nn.Dropout(dropout)
         self.threshold_value = threshold_value
 
-    def forward(self, x, weight_normal=False):
+    def forward(self, x):
         x2 = self.norm_1(x)
         # print(x2.shape)
         # print(query.shape)
@@ -167,30 +194,42 @@ def get_clones(module, N):
 
 class Transformer_Different_Attention_Encoder(nn.Module):
     def __init__(self, d_model, norm_in_channels, N, dim_feedforward, nhead, threshold_value=False,
-                 weight_normal=False):
+                 weight=False, weight_normal=False, weight_cauchy=False,
+                 weight_logistic=False, weight_normal_linear=False):
         super().__init__()
         self.N = N
         self.layers = get_clones(
             Transformer_Different_Attention_EncoderLayer(d_model, norm_in_channels, dim_feedforward, nhead,
-                                                         threshold_value=threshold_value, weight_normal=weight_normal),
+                                                         threshold_value=threshold_value,
+                                                         weight=weight, weight_normal=weight_normal,
+                                                         weight_cauchy=weight_cauchy, weight_logistic=weight_logistic),
             N)
         self.norm = Norm(norm_in_channels)
+        self.weight_normal_linear = weight_normal_linear
 
     def forward(self, x):
         for i in range(self.N):
             x = self.layers[i](x)
-        return self.norm(x)
+        x = self.norm(x)
+        if self.weight_normal_linear:
+            pos = torch.arange(1, 42, dtype=torch.float, device=x.device)  # 生成位置信息
+            w = torch.tensor(math.e ** (-((pos.cpu().numpy() - 21) ** 2) / (2 * 10)), device=x.device)
+            w = w.reshape(1, -1, 1)  # 调整形状以便广播
+            # print(x.device)
+            x = w * x
+        return x
 
 
 """----------测试--------------"""
-x1 = torch.randn((1024, 41, 64))
-# x2 = torch.randn((1, 2048))
-TD = Transformer_Different_Attention_Encoder(d_model=64,
-                                             norm_in_channels=64,
-                                             N=1,
-                                             dim_feedforward=8,
-                                             nhead=2,
-                                             weight_normal=True)
-output = TD(x1)
-print(output.size())
-# print(output)
+# x1 = torch.randn((1024, 41, 64))
+# # x2 = torch.randn((1, 2048))
+# TD = Transformer_Different_Attention_Encoder(d_model=64,
+#                                              norm_in_channels=64,
+#                                              N=1,
+#                                              dim_feedforward=8,
+#                                              nhead=2,
+#                                              weight_normal=False,
+#                                              weight_normal_linear=True)
+# output = TD(x1)
+# print(output.size())
+# # print(output)
