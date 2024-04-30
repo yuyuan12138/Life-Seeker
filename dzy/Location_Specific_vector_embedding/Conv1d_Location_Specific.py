@@ -14,7 +14,7 @@ class Conv1d_location_specific(nn.Module):
         self.stride = stride
         self.weight = weight
 
-        self.conv1d_1 = nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding) # stride和padding的顺序别搞反了
+        self.conv1d_1 = nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding)  # stride和padding的顺序别搞反了
         self.conv1d_2 = nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding)
         self.conv1d_3 = nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding)
 
