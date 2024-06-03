@@ -11,3 +11,6 @@
 ## config.py新增参数说明
 * self.combined：是否对预训练模型进行训练；True时读入combined_data，写入预训练模型；False时以预训练模型为基础，读入data进行模型微调
 * self.model：当前数据对应的预训练模型文件名称；当self.combined为True时写入到该文件中，否则从该文件中读取预训练模型
+
+## 注意事项
+* 程序不会覆盖存在的预训练模型文件。对预训练模型进行训练前，需要删除self.model对应的同名文件。
